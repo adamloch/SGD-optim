@@ -23,7 +23,7 @@ def main():
                     help="size of SGD mini-batches")
     args = vars(ap.parse_args())
 
-    (X, y) = make_blobs(n_samples=400, n_features=2, centers=2,
+    (X, y) = make_blobs(n_samples=400, n_features=2, centers=3,
                         cluster_std=2.5, random_state=95)
 
     X = np.c_[np.ones((X.shape[0])), X]
