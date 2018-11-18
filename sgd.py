@@ -77,6 +77,7 @@ def main():
     plt.figure()
     plt.scatter(X[:, 1], X[:, 2], marker="o", c=y)
     plt.plot(X, Y, "r-")
+    plt.show()
 
     # construct a figure that plots the loss over time
     fig = plt.figure()
