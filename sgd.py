@@ -63,6 +63,7 @@ def main():
 
             # use the gradient computed on the current batch to take
             # a "step" in the correct direction
+            print(W)
             W += -args["alpha"] * gradient
 
         # update our loss history list by taking the average loss
