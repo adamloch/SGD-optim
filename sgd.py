@@ -2,82 +2,166 @@ import matplotlib.pyplot as plt
 from sklearn.datasets.samples_generator import make_blobs
 import numpy as np
 import argparse
- 
+import matplotlib.pyplot as pylab
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+import math
+from sklearn.utils import shuffle
+
+
 def sigmoid_activation(x):
-	return 1.0 / (1 + np.exp(-x))
- 
-def next_batch(X, y, batchSize):
-	for i in np.arange(0, X.shape[0], batchSize):
-		yield (X[i:i + batchSize], y[i:i + batchSize])
+    return 1.0 / (1 + np.exp(-x))
 
-ap = argparse.ArgumentParser()
-ap.add_argument("-e", "--epochs", type=float, default=100,
-	help="# of epochs")
-ap.add_argument("-a", "--alpha", type=float, default=0.01,
-	help="learning rate")
-ap.add_argument("-b", "--batch-size", type=int, default=32,
-	help="size of SGD mini-batches")
-args = vars(ap.parse_args())
 
-(X, y) = make_blobs(n_samples=400, n_features=2, centers=2,
-	cluster_std=2.5, random_state=95)
+def activation(x):
+    return np.max(x, 0)
 
-X = np.c_[np.ones((X.shape[0])), X]
 
-print("[INFO] starting training...")
-W = np.random.uniform(size=(X.shape[1],))
- 
-# initialize a list to store the loss value for each epoch
-lossHistory = []
+def custommodel(inputs, weights):
+    return activation(weights[0] * inputs[:, 0] - weights[1] * inputs[:, 0] + weights[1] * weights[0]* inputs[:, 1])
 
-# loop over the desired number of epochs
-for epoch in np.arange(0, args["epochs"]):
-	# initialize the total loss for the epoch
-	epochLoss = []
- 
-	# loop over our data in batches
-	for (batchX, batchY) in next_batch(X, y, args["batch_size"]):
-		# take the dot product between our current batch of
-		# features and weight matrix `W`, then pass this value
-		# through the sigmoid activation function
-		preds = sigmoid_activation(batchX.dot(W))
- 
-		# now that we have our predictions, we need to determine
-		# our `error`, which is the difference between our predictions
-		# and the true values
-		error = preds - batchY
- 
-		# given our `error`, we can compute the total loss value on
-		# the batch as the sum of squared loss
-		loss = np.sum(error ** 2)
-		epochLoss.append(loss)
- 
-		# the gradient update is therefore the dot product between
-		# the transpose of our current batch and the error on the
-		# # batch
-		gradient = batchX.T.dot(error) / batchX.shape[0]
- 
-		# use the gradient computed on the current batch to take
-		# a "step" in the correct direction
-		W += -args["alpha"] * gradient
- 
-	# update our loss history list by taking the average loss
-	# across all batches
-	lossHistory.append(np.average(epochLoss))
 
-    # compute the line of best fit by setting the sigmoid function
-# to 0 and solving for X2 in terms of X1
-Y = (-W[0] - (W[1] * X)) / W[2]
- 
-# plot the original data along with our line of best fit
-plt.figure()
-plt.scatter(X[:, 1], X[:, 2], marker="o", c=y)
-plt.plot(X, Y, "r-")
- 
-# construct a figure that plots the loss over time
-fig = plt.figure()
-plt.plot(np.arange(0, args["epochs"]), lossHistory)
-fig.suptitle("Training Loss")
-plt.xlabel("Epoch #")
-plt.ylabel("Loss")
-plt.show()
+def MSE(y, predicted):
+    return (y - predicted)**2
+
+
+class Model:
+
+    def __init__(self, weights=[0.1, 1.0], function=custommodel, loss=MSE):
+        self.weights = np.array(weights)
+        self.function = function
+        self.loss = loss
+
+    def calculate_loss(self, y, data, weights=None):
+        try:
+            predicted = self.predict(data, weights)
+        except:
+            predicted = self.predict(data, self.weights)
+
+        return np.sum(self.loss(y, predicted))/len(y)
+
+    def predict(self, inputs, weights=None):
+        try:
+            return self.function(inputs, weights)
+        except:
+            return self.function(inputs, self.weights)
+
+    def grid_loss(self, y, data, weights=[]):
+        result = np.empty(weights[0].shape)
+        for i in range(weights[0].shape[0]):
+            for j in range(weights[0].shape[1]):
+                result[i, j] = self.calculate_loss(
+                    y, data, [weights[0][i, j], weights[1][i, j]])
+        return result
+
+    def eval_numerical_gradient(self, y, data):
+        """ 
+        a naive implementation of numerical gradient of f at x
+        - f should be a function that takes a single argument
+        - x is the point (numpy array) to evaluate the gradient at
+        """
+        x = self.weights
+
+        grad = np.zeros(x.shape)
+        h = 0.00001
+
+        # iterate over all indexes in x
+        it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+        while not it.finished:
+
+            # evaluate function at x+h
+            ix = it.multi_index
+            old_value = x[ix]
+            x[ix] = old_value + h  # increment by h
+            fxh = self.calculate_loss(y, data, x)  # evalute f(x + h)
+            x[ix] = old_value  # restore to previous value (very important!)
+            x[ix] = old_value - h  # evalute f(x - h)
+            fx_h = self.calculate_loss(y, data, x)
+            x[ix] = old_value
+
+            # compute the partial derivative
+            grad[ix] = (fxh - fx_h) / (2*h)  # the slope
+            it.iternext()  # step to next dimension
+
+        return grad
+
+    def init_random_weight(self):
+        self.weights = np.random.rand(self.weights.shape[0])*10
+
+    def update_weights(self, gradient, lr=0.001):
+        self.weights = self.weights - lr * gradient
+
+
+if __name__ == "__main__":
+    # test purposes
+    (X, y) = make_blobs(n_samples=400, n_features=2, centers=2,
+                        cluster_std=2.5, random_state=21)
+
+    model = Model(weights=[0, 0])
+    W1 = np.linspace(0, 10, 50)
+    W2 = np.linspace(0, 10, 50)
+    W1, W2 = np.meshgrid(W1, W2)
+    # z = model.grid_loss(y, X, [W1, W2])
+
+    # fig = pylab.figure(figsize=(16, 7))
+    # ax1 = fig.add_subplot(121, projection='3d')
+
+    # ax1.plot_surface(W1, W2, z, cmap=cm.jet)
+    # ax1.set_xlabel(r'$\theta^1$', fontsize=18)
+    # ax1.set_ylabel(r'$\theta^2$', fontsize=18)
+
+    # ax2 = fig.add_subplot(122)
+    # ax2.contour(W1, W2, z, 128,  cmap=cm.jet)
+
+    # pylab.suptitle('Contour Surface', fontsize=24)
+    # pylab.show()
+
+    model.init_random_weight()
+
+    def next_batch(X, y, batchSize):
+        for i in np.arange(0, X.shape[0], batchSize):
+            yield (X[i:i + batchSize], y[i:i + batchSize])
+
+    lossHistory = []
+
+    allLoss = []
+    allW0 = []
+    allW1 = []
+    nb_epochs = 100
+    for epoch in range(nb_epochs):
+        epochLoss = []
+        X, y = shuffle(X, y, random_state=0)
+        for (batchX, batchY) in next_batch(X, y, 16):
+            preds = model.predict(batchX)
+            loss = model.calculate_loss(batchY, batchX)
+            allW0.append(model.weights[0])
+            allW1.append(model.weights[1])
+            epochLoss.append(loss)
+            allLoss.append(loss)
+            gradient = model.eval_numerical_gradient(batchY, batchX)
+            model.update_weights(gradient, lr = 10e-6)
+        lossHistory.append(np.average(epochLoss))
+
+    z = model.grid_loss(y, X, [W1, W2])
+
+    fig = pylab.figure(figsize=(16, 7))
+    ax1 = fig.add_subplot(221, projection='3d')
+
+    ax1.plot_surface(W1, W2, z, cmap=cm.jet)
+    ax1.set_xlabel(r'$\theta^1$', fontsize=18)
+    ax1.set_ylabel(r'$\theta^2$', fontsize=18)
+    ax1.scatter(allW0, allW1, allLoss, color='r')
+
+    ax2 = fig.add_subplot(222)
+    ax2.contour(W1, W2, z, 128,  cmap=cm.jet)
+    ax2.scatter(allW0, allW1, color='r')
+
+    pylab.suptitle('Contour Surface', fontsize=24)
+
+    ax3 = fig.add_subplot(223)
+    ax3.plot(np.arange(0, nb_epochs), lossHistory)
+
+    ax4 = fig.add_subplot(224)
+    ax4.plot(np.arange(0, len(allLoss)), allLoss)
+
+    pylab.show()
