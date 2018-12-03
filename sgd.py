@@ -7,8 +7,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import math
 from sklearn.utils import shuffle
-
-
+from matplotlib.widgets import Slider, Button, RadioButtons
+import matplotlib.animation as animation
 def sigmoid_activation(x):
     return 1.0 / (1 + np.exp(-x))
 
@@ -51,7 +51,7 @@ class Model:
         for i in range(weights[0].shape[0]):
             for j in range(weights[0].shape[1]):
                 result[i, j] = self.calculate_loss(
-                    y, data, [weights[0][i, j], weights[1][i, j]])
+                    y, data, [weights[0][i, j], weights[1][i, j]])/data.shape[0]
         return result
 
     def eval_numerical_gradient(self, y, data):
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     # pylab.show()
 
     model.init_random_weight()
-
+    model.weights = np.array([9.89,9.99])
     def next_batch(X, y, batchSize):
         for i in np.arange(0, X.shape[0], batchSize):
             yield (X[i:i + batchSize], y[i:i + batchSize])
@@ -131,13 +131,13 @@ if __name__ == "__main__":
     for epoch in range(nb_epochs):
         epochLoss = []
         X, y = shuffle(X, y, random_state=0)
-        for (batchX, batchY) in next_batch(X, y, 16):
+        for (batchX, batchY) in next_batch(X, y, 6):
             preds = model.predict(batchX)
             loss = model.calculate_loss(batchY, batchX)
             allW0.append(model.weights[0])
             allW1.append(model.weights[1])
-            epochLoss.append(loss)
-            allLoss.append(loss)
+            epochLoss.append(loss/batchX.shape[0])
+            allLoss.append(loss/batchX.shape[0])
             gradient = model.eval_numerical_gradient(batchY, batchX)
             model.update_weights(gradient, lr = 10e-6)
         lossHistory.append(np.average(epochLoss))
@@ -147,14 +147,28 @@ if __name__ == "__main__":
     fig = pylab.figure(figsize=(16, 7))
     ax1 = fig.add_subplot(221, projection='3d')
 
-    ax1.plot_surface(W1, W2, z, cmap=cm.jet)
+    ax1.plot_surface(W1, W2, z, cmap=cm.coolwarm)
     ax1.set_xlabel(r'$\theta^1$', fontsize=18)
     ax1.set_ylabel(r'$\theta^2$', fontsize=18)
-    ax1.scatter(allW0, allW1, allLoss, color='r')
-
+    
+    projected_loss = []
+    print(X.shape, y.shape)
+    for W0t, W1t in zip(allW0, allW1):
+        projected_loss.append(model.calculate_loss(y,X,[W0t, W1t])/len(y)+1)
+    #ax1.plot(allW0, allW1, projected_loss, color='b')
+    
+  
     ax2 = fig.add_subplot(222)
     ax2.contour(W1, W2, z, 128,  cmap=cm.jet)
-    ax2.scatter(allW0, allW1, color='r')
+    #ax2.plot(allW0, allW1, color='r')
+    def animation_frame(nframe):
+        ww = allW0[:nframe*16]
+        www = allW1[:nframe*16]
+        ax2.plot(ww, www, color='r')
+        pl = projected_loss[:nframe*16]
+        ax1.plot(ww, www, pl, color='b')
+    anim = animation.FuncAnimation(fig, animation_frame, frames=int(len(allW0)/16))
+    #sfreq = Slider(axfreq, 'Freq', 1, len(y), valinit=len(y), valstep=20)
 
     pylab.suptitle('Contour Surface', fontsize=24)
 
@@ -163,5 +177,7 @@ if __name__ == "__main__":
 
     ax4 = fig.add_subplot(224)
     ax4.plot(np.arange(0, len(allLoss)), allLoss)
+
+    
 
     pylab.show()
