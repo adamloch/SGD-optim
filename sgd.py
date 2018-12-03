@@ -148,8 +148,8 @@ if __name__ == "__main__":
     ax1 = fig.add_subplot(221, projection='3d')
 
     ax1.plot_surface(W1, W2, z, cmap=cm.coolwarm)
-    ax1.set_xlabel(r'$\theta^1$', fontsize=18)
-    ax1.set_ylabel(r'$\theta^2$', fontsize=18)
+    ax1.set_xlabel(r'$\theta^1$', fontsize=16)
+    ax1.set_ylabel(r'$\theta^2$', fontsize=16)
     
     projected_loss = []
     print(X.shape, y.shape)
@@ -159,21 +159,24 @@ if __name__ == "__main__":
     
   
     ax2 = fig.add_subplot(222)
-    ax2.contour(W1, W2, z, 128,  cmap=cm.jet)
+    c = ax2.contour(W1, W2, z, 128,  cmap=cm.coolwarm)
     #ax2.plot(allW0, allW1, color='r')
     def animation_frame(nframe):
         ww = allW0[:nframe*16]
         www = allW1[:nframe*16]
         ax2.plot(ww, www, color='r')
         pl = projected_loss[:nframe*16]
-        ax1.plot(ww, www, pl, color='b')
+        ax1.plot(ww, www, pl, color='r')
     anim = animation.FuncAnimation(fig, animation_frame, frames=int(len(allW0)/16))
     #sfreq = Slider(axfreq, 'Freq', 1, len(y), valinit=len(y), valstep=20)
+    pylab.colorbar(c)
 
     pylab.suptitle('Contour Surface', fontsize=24)
 
     ax3 = fig.add_subplot(223)
     ax3.plot(np.arange(0, nb_epochs), lossHistory)
+    ax3.set_xlabel("Number of epoches")
+    ax3.set_ylabel("Loss value")
 
     ax4 = fig.add_subplot(224)
     ax4.plot(np.arange(0, len(allLoss)), allLoss)
