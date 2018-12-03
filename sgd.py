@@ -27,10 +27,13 @@ def MSE(y, predicted):
 
 class Model:
 
-    def __init__(self, weights=[0.1, 1.0], function=custommodel, loss=MSE):
+    def __init__(self, weights=[0.1, 1.0], function=custommodel, loss=MSE, epochs = 100, batch = 1, lr = 10e-6):
         self.weights = np.array(weights)
         self.function = function
         self.loss = loss
+        self.epochs = epochs
+        self.batch = batch
+        self.lr = lr
 
     def calculate_loss(self, y, data, weights=None):
         try:
@@ -89,7 +92,7 @@ class Model:
         self.weights = np.random.rand(self.weights.shape[0])*10
 
     def update_weights(self, gradient, lr=0.001):
-        self.weights = self.weights - lr * gradient
+        self.weights = self.weights - self.lr * gradient
 
 
 if __name__ == "__main__":
@@ -128,10 +131,10 @@ if __name__ == "__main__":
     allW0 = []
     allW1 = []
     nb_epochs = 100
-    for epoch in range(nb_epochs):
+    for epoch in range(model.epochs):
         epochLoss = []
         X, y = shuffle(X, y, random_state=0)
-        for (batchX, batchY) in next_batch(X, y, 6):
+        for (batchX, batchY) in next_batch(X, y, model.batch):
             preds = model.predict(batchX)
             loss = model.calculate_loss(batchY, batchX)
             allW0.append(model.weights[0])
