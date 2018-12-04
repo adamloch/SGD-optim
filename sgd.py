@@ -218,6 +218,7 @@ if __name__ == "__main__":
         ax1.plot_surface(W1, W2, z, cmap=cm.coolwarm)
         ax1.set_xlabel(r'$\theta^1$', fontsize=16)
         ax1.set_ylabel(r'$\theta^2$', fontsize=16)
+        ax1.set_zlabel(r'Loss', fontsize=16)
         
         projected_loss = []
         print(X.shape, y.shape)
@@ -236,7 +237,9 @@ if __name__ == "__main__":
         anim = animation.FuncAnimation(fig, animation_frame, frames=int(len(allW0)/16))
         pylab.colorbar(c)
 
-        pylab.suptitle('Contour Surface', fontsize=24)
+        ax2.set_xlabel(r'$\theta^1$', fontsize=16)
+        ax2.set_xlabel(r'$\theta^2$', fontsize=16)
+        pylab.suptitle('Stochastic Gradient Descent', fontsize=24)
 
         ax3 = fig.add_subplot(235)
         ax3.plot(np.arange(0, len(lossHistory)), lossHistory)
@@ -245,6 +248,8 @@ if __name__ == "__main__":
 
         ax4 = fig.add_subplot(234)
         ax4.plot(np.arange(0, len(allLoss)), allLoss)
+        ax4.set_xlabel("Number of batches")
+        ax4.set_ylabel("Loss value")
         pylab.show()
 
    
